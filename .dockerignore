@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.zip
+*.tar.gz
+*.pt
+*.pth
+*.csv
+*.ipynb_checkpoints
+.git/
+.venv/
+venv/
+node_modules/
+data/
+models/
