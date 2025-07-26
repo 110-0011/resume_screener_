@@ -1,39 +1,41 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 import os
 import fitz  # PyMuPDF
 from sentence_transformers import SentenceTransformer, util
-# added Export results as Excel
 import pandas as pd
 from io import BytesIO
-from flask import send_file
+import spacy
+from rapidfuzz import fuzz
+import re
 
-
+# === Setup ===
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Load sentence transformer model
+nlp = spacy.load("en_core_web_sm")
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Example job description
-#JOB_DESCRIPTION = """
-#We are looking for candidates with strong skills in Python, Machine Learning, and Data Science. 
-#Preference will be given to those who have done internships and have a high CGPA.
-#"""
-
-# added --> begin
-
-import re
-
-# Define a basic skill set to match against
 SKILL_KEYWORDS = {
     'python', 'machine learning', 'sql', 'data science', 'pandas',
     'tensorflow', 'keras', 'numpy', 'scikit-learn', 'deep learning',
     'java', 'c++', 'excel', 'power bi', 'tableau', 'nlp'
 }
+
+# === Helper Functions ===
+def extract_text_from_pdf(pdf_path):
+    doc = fitz.open(pdf_path)
+    return "\n".join([page.get_text() for page in doc])
+
+def normalize_score(raw_score, max_possible=0.6):
+    clamped = max(0.0, min(raw_score, max_possible))
+    return round((clamped / max_possible) * 10, 2)
+
+def score_with_ai(text, job_description):
+    embeddings = model.encode([text, job_description], convert_to_tensor=True)
+    raw_score = util.pytorch_cos_sim(embeddings[0], embeddings[1]).item()
+    return normalize_score(raw_score)
 
 def extract_cgpa(text):
     patterns = [
@@ -46,31 +48,48 @@ def extract_cgpa(text):
             return float(match.group(1))
     return 'Not found'
 
-
 def extract_skills(text):
-    found = [skill for skill in SKILL_KEYWORDS if re.search(r'\b' + re.escape(skill) + r'\b', text, re.IGNORECASE)]
+    found = []
+    for skill in SKILL_KEYWORDS:
+        if fuzz.partial_ratio(skill.lower(), text.lower()) > 85:
+            found.append(skill)
     return ', '.join(found) if found else 'Not found'
 
 def extract_experience(text):
-    if re.search(r'\bintern(ship)?\b', text, re.IGNORECASE):
-        return '1+ Internship'
-    return 'No Internship'
+    return '1+ Internship' if re.search(r'\bintern(ship)?\b', text, re.IGNORECASE) else 'No Internship'
 
-# added -- end
+def extract_named_entities(text):
+    doc = nlp(text)
+    entities = {
+        "PERSON": [],
+        "ORG": [],
+        "GPE": [],
+        "EMAIL": [],
+        "PHONE": []
+    }
 
-def extract_text_from_pdf(pdf_path):
-    text = ""
-    doc = fitz.open(pdf_path)
-    for page in doc:
-        text += page.get_text()
-    return text
+    for ent in doc.ents:
+        if ent.label_ in entities:
+            entities[ent.label_].append(ent.text)
 
-def score_with_ai(text, job_description):
-    # Encode resume and job description
-    embeddings = model.encode([text, job_description], convert_to_tensor=True)
-    similarity = util.pytorch_cos_sim(embeddings[0], embeddings[1])
-    return float(similarity[0][0]) * 10  # Convert similarity to 0-10 score
+    # Regex email/phone extraction
+    emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
+    phones = re.findall(r'(\+?\d[\d\s\-().]{7,}\d)', text)
 
+    entities['EMAIL'] = list(set(entities['EMAIL'] + emails))
+    entities['PHONE'] = list(set(entities['PHONE'] + phones))
+
+    return entities
+
+def skill_match_score(resume_skills, required_skills):
+    resume_set = set([s.strip().lower() for s in resume_skills.split(',') if s.strip()])
+    required_set = set([s.strip().lower() for s in required_skills])
+    if not resume_set or not required_set:
+        return 0
+    match_count = len(resume_set & required_set)
+    return match_count / len(required_set)
+
+# === Routes ===
 @app.route('/', methods=['GET', 'POST'])
 def index():
     global results
@@ -87,63 +106,50 @@ def index():
             error = "Please provide a job description and upload at least one resume (PDF)."
             return render_template('index.html', results=[], job_description=job_description, error=error)
 
+        # Extract skill keywords from job description for scoring
+        job_keywords = extract_skills(job_description)
+        job_skill_list = [k.strip() for k in job_keywords.split(',')] if job_keywords != 'Not found' else []
+
         for file in files:
             if file and file.filename.lower().endswith('.pdf'):
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
                 file.save(filepath)
 
                 text = extract_text_from_pdf(filepath)
-                #ai_score = score_with_ai(text, job_description)
-                # the above line produced a bug in the template index.html filling the score bar full
-                # when results were negative i.e. (-) cosine similarity
-                # so we are clamping the score between 0 and 10
-
-                raw_score = score_with_ai(text, job_description)
-                ai_score = max(0, min(round(raw_score, 2), 10))  # Clamp score between 0 and 10
-
+                ai_score = score_with_ai(text, job_description)
 
                 cgpa = extract_cgpa(text)
                 skills = extract_skills(text)
                 experience = extract_experience(text)
+                ner_entities = extract_named_entities(text)
 
-                status = 'shortlisted' if ai_score > 7 else 'review'
+                # Add skill-based bonus
+                skill_bonus = skill_match_score(skills, job_skill_list) * 2  # weighted out of 2
+                final_score = min(ai_score + skill_bonus, 10)
+
+                status = 'shortlisted' if final_score > 7 else 'review'
 
                 results.append({
                     'name': file.filename,
-                    'score': round(ai_score, 2),
+                    'score': round(final_score, 2),
                     'cgpa': cgpa,
                     'skills': skills,
                     'experience': experience,
-                    'status': status
+                    'status': status,
+                    'entities': ner_entities
                 })
 
         results = sorted(results, key=lambda x: x['score'], reverse=True)
 
     return render_template('index.html', results=results, job_description=job_description, error=error)
 
-
-
-# export results as Excel --> begin
-results = []
 @app.route('/export_excel')
 def export_excel():
-    # Example: assume you have 'results' stored or recreate them here.
-    # For demo, let's hardcode or reuse your existing scoring logic.
-    # In real app, you'd persist results or regenerate them on export.
-
-    # For now, let's just re-run the existing example JOB_DESCRIPTION scoring 
-    # on files in uploads folder (or better, persist results after upload).
-
-    # For demo, let's just create a dummy dataframe from last processed results
-    # You can modify this to fetch real data from your DB or session
-
-    # Suppose you keep last results in a global variable (not ideal but simple)
     global results
     if not results:
         return "No results to export", 400
 
     df = pd.DataFrame(results)
-    # Rename columns for nicer Excel headers
     df.rename(columns={
         'name': 'Candidate Name',
         'score': 'Match Score',
@@ -153,11 +159,9 @@ def export_excel():
         'status': 'Status'
     }, inplace=True)
 
-    # Create an in-memory Excel file
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Screening Results')
-
     output.seek(0)
 
     return send_file(
@@ -166,8 +170,6 @@ def export_excel():
         as_attachment=True,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-# excel --> end
 
 if __name__ == '__main__':
     app.run(debug=True)

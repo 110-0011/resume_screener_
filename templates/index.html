@@ -1,104 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Campus Placement Resume Screener</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <title>Campus Placement Resume Screener</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <style>
+  body {
+    background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+    /* subtle blue-gray gradient for a gentle professional look */
+  }
+
+  .container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    padding: 2rem 2rem 3rem;
+  }
+
+  /* Make heading a bit friendlier */
+  h1 {
+    color: #155e75; /* teal-900 */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  /* Form background & shadow */
+  form#uploadForm {
+    background-color: #f9fafb; /* slightly off-white */
+    box-shadow: 0 4px 8px rgba(22, 78, 99, 0.1);
+  }
+
+  /* Footer export button sticky */
+  .fixed.bottom-0 {
+    background: #f1f5f9;
+    border-top: 1px solid #cbd5e1;
+  }
+
+  /* Alternate table row background */
+table tbody tr:nth-child(odd) {
+  background-color: #f9fafb; /* light gray for odd rows */
+}
+
+/* Highlight on hover */
+table tbody tr:hover {
+  background-color: #e0f2fe; /* subtle light blue on hover */
+}
+
+/* Header row styling */
+table thead tr {
+  background-color: #bae6fd; /* light sky blue */
+  color: #0c4a6e; /* dark blue */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #0c4a6e;
+}
+/* Darker alternate row background */
+table tbody tr:nth-child(odd) {
+  background-color: #e2e8f0; /* Tailwind slate-300 - a bit darker gray */
+}
+
+/* Darker hover background */
+table tbody tr:hover {
+  background-color: #cbd5e1; /* Tailwind slate-400 - more noticeable */
+}
+
+/* Header row styling */
+table thead tr {
+  background-color: #90cdf4; /* Tailwind blue-300 - stronger blue */
+  color: #1e40af; /* Tailwind blue-800 - darker blue */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #1e40af;
+}
+
+</style> -->
+
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-center mb-8">CampusScreener – Resume Screening</h1>
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center mb-8">CampusScreener – Resume Screening</h1>
 
-        {% if error %}
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Error:</strong> {{ error }}
-        </div>
-        {% endif %}
-
-        <!-- Upload Form -->
-        <form id="uploadForm" enctype="multipart/form-data" method="POST" class="bg-white p-6 rounded shadow-md mb-8">
-            <label class="block mb-4 text-gray-700 font-semibold">Job Description:</label>
-            <textarea name="job_description" rows="4" placeholder="Paste job description here..."
-                      class="mb-4 block w-full text-sm text-gray-700 border rounded p-2" required></textarea>
-
-            <label class="block mb-4 text-gray-700 font-semibold">Upload Resumes (PDF only):</label>
-            <input type="file" id="resumeUpload" name="resumes" multiple accept=".pdf"
-                   class="mb-4 block w-full text-sm text-gray-700 border rounded p-2">
-
-            <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-                Upload & Screen
-            </button>
-        </form>
-
-
-        <!-- Upload Form -->
-        <!-- <form id="uploadForm" enctype="multipart/form-data" method="POST" class="bg-white p-6 rounded shadow-md mb-8">
-            <label class="block mb-4 text-gray-700 font-semibold">Upload Resumes (PDF only):</label>
-            <input type="file" id="resumeUpload" name="resumes" multiple accept=".pdf" class="mb-4 block w-full text-sm text-gray-700 border rounded p-2">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">Upload & Screen</button>
-        </form> -->
-
-        {% if results %}
-        <div class="bg-white p-4 rounded shadow mb-4">
-            <h3 class="text-lg font-bold text-gray-800 mb-2">Job Description Used:</h3>
-            <p class="text-sm text-gray-700 whitespace-pre-line">{{ job_description }}</p>
-        </div>
-        {% endif %}
-
-
-        <!-- Results Table -->
-        {% if results %}
-        <div class="bg-white p-6 rounded shadow-md">
-            <h2 class="text-xl font-bold mb-4">Screening Results</h2>
-            <div class="overflow-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Candidate</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Match Score</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">CGPA</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Skills</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Experience</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for result in results %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-gray-900">{{ result.name }}</td>
-                            <td class="px-4 py-3 text-gray-900">
-                                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
-                                    <div class="bg-blue-500 h-2.5 rounded-full" style="width: {{ result.score * 10 }}%"></div>
-                                </div>
-                                <span class="font-semibold">{{ result.score }} / 10</span>
-                            </td>
-                            <td class="px-4 py-3 text-gray-900">{{ result.cgpa }}</td>
-                            <td class="px-4 py-3 text-gray-900">{{ result.skills }}</td>
-                            <td class="px-4 py-3 text-gray-900">{{ result.experience }}</td>
-                            <td class="px-4 py-3">
-                                {% if result.status == 'shortlisted' %}
-                                <span class="inline-block px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">Shortlisted</span>
-                                {% else %}
-                                <span class="inline-block px-3 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">Review</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% if results %}
-                <div class="mt-4">
-                    <a href="{{ url_for('export_excel') }}" 
-                       class="inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">
-                       Export Results to Excel
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
+    {% if error %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      <strong>Error:</strong> {{ error }}
     </div>
-        
+    {% endif %}
+
+    <!-- Upload Form -->
+    <form id="uploadForm" enctype="multipart/form-data" method="POST"
+          class="bg-white p-6 rounded shadow-md mb-8">
+      <label class="block mb-2 text-gray-700 font-semibold" for="job_description">Job Description:</label>
+      <textarea id="job_description" name="job_description" rows="4"
+                placeholder="Paste job description here (e.g. Python, Machine Learning, Data Science)..."
+                class="mb-4 block w-full text-sm text-gray-700 border rounded p-2 resize-none"
+                required
+                oninput="autoGrow(this)">{{ job_description }}</textarea>
+
+      <label class="block mb-2 text-gray-700 font-semibold" for="resumeUpload">Upload Resumes (PDF only):</label>
+      <input type="file" id="resumeUpload" name="resumes" multiple accept=".pdf"
+             class="mb-4 block w-full text-sm text-gray-700 border rounded p-2" />
+
+      <button type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+        Upload & Screen
+      </button>
+    </form>
+
+    
+    {% if results %}
+
+
+    <!-- Screening Results -->
+    <div class="bg-white rounded shadow-md">
+    <!-- Sticky Heading -->
+    <div class="sticky top-0 z-20 bg-white p-6 border-b shadow-sm">
+        <h2 class="text-xl font-bold">Screening Results</h2>
+    </div>
+      <!--<div class="bg-white p-6 rounded shadow-md overflow-auto max-h-[70vh] pb-16"> -->
+      <div class="bg-white p-6 rounded shadow-md overflow-auto pb-16" style="max-height: calc(100vh - 120px);">
+
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50 sticky top-0 z-10">
+            <tr>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Candidate</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Score</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">CGPA</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Skills (fuzzy)</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Experience</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Skill Bonus</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase">Contact Info</th>
+            </tr>
+            </thead>
+
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for result in results %}
+            <tr class="hover:bg-gray-50 align-top">
+              <td class="px-4 py-3 text-gray-900">{{ result.name }}</td>
+              <td class="px-4 py-3 text-gray-900">
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                  <div class="bg-blue-500 h-2.5 rounded-full"
+                       style="width: {{ result.score * 10 }}%"></div>
+                </div>
+                <span class="font-semibold">{{ result.score }} / 10</span>
+              </td>
+              <td class="px-4 py-3 text-gray-900">{{ result.cgpa }}</td>
+              <td class="px-4 py-3 text-gray-900">{{ result.skills }}</td>
+              <td class="px-4 py-3 text-gray-900">{{ result.experience }}</td>
+              <td class="px-4 py-3 text-gray-900">
+                {{ result.score|round(2) }}
+              </td>
+              <td class="px-4 py-3">
+                {% if result.status == 'shortlisted' %}
+                  <span class="inline-block px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
+                    Shortlisted
+                  </span>
+                {% else %}
+                  <span class="inline-block px-3 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">
+                    Review
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-900 text-xs">
+                {% if result.entities %}
+                  {% for label, values in result.entities.items() %}
+                    <div class="mb-1">
+                      <strong>{{ label }}:</strong>
+                      {% for val in values %}
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">
+                          {{ val }}
+                        </span>
+                      {% endfor %}
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sticky Export Button -->
+    <div class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 shadow-md py-3 px-4 z-50">
+      <div class="max-w-7xl mx-auto flex justify-start">
+        <a href="{{ url_for('export_excel') }}"
+           class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow text-sm md:text-base">
+          Export Results to Excel
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <script>
+    function autoGrow(element) {
+      element.style.height = "5px";
+      element.style.height = (element.scrollHeight) + "px";
+    }
+    window.addEventListener('load', () => {
+      const textarea = document.getElementById('job_description');
+      if (textarea) autoGrow(textarea);
+    });
+  </script>
 </body>
 </html>
