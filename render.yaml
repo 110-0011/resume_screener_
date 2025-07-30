@@ -3,6 +3,11 @@ services:
     name: resume-screener
     env: python
     buildCommand: |
-      pip install -r requirements.txt
+      # Use Dockerfile for building image, so no pip install here
+      # But to preload model cache, run python command:
       python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
-    startCommand: python app.py
+    startCommand: gunicorn app:app --bind 0.0.0.0:8000
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /health  # adjust this to your app’s health endpoint if you have one
