@@ -1,24 +1,20 @@
 FROM python:3.12-slim
 
-# Install build tools, Rust (for tokenizers, etc.)
+# Install system packages and Rust
 RUN apt-get update && apt-get install -y \
     curl build-essential pkg-config libssl-dev && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
-    . $HOME/.cargo/env
+    . "$HOME/.cargo/env"
 
 WORKDIR /app
 
-# Copy requirements
 COPY requirements.txt .
 
-# Install pip dependencies in two steps: torch separately
+# Upgrade pip and install torch first
 RUN pip install --upgrade pip setuptools wheel && \
     pip install torch==2.7.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html && \
-    grep -v '^torch==2.7.1+cpu' requirements.txt > temp_requirements.txt && \
-    pip install -r temp_requirements.txt && \
-    rm temp_requirements.txt
+    pip install -r requirements.txt
 
-# Copy the rest of the code
 COPY . .
 
 EXPOSE 8000
