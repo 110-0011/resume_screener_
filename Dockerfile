@@ -12,7 +12,7 @@ COPY requirements.txt .
 
 # Upgrade pip and install torch first
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install torch==2.7.1+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html && \
+    pip install torch==2.7.1 -f https://download.pytorch.org/whl/cpu/torch_stable.html && \
     pip install -r requirements.txt
 
 COPY . .
