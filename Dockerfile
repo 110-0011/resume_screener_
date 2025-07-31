@@ -39,5 +39,6 @@ RUN mkdir -p uploads
 EXPOSE 8000
 
 # Run using gunicorn; Render requires dynamic port
-CMD gunicorn app:app --bind 0.0.0.0:$PORT --workers 4
+CMD gunicorn app:app --bind 0.0.0.0:$PORT --workers 1
+
 
