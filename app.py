@@ -1,4 +1,6 @@
 from flask import Flask
+print(f"✅ Flask is starting on port {port}")
+
 app = Flask(__name__)
 @app.route("/")
 def home():
