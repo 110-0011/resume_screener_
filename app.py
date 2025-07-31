@@ -171,13 +171,5 @@ def export_excel():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-@app.route('/env')
-def env():
-    return f"PORT={os.environ.get('PORT')}"
-
-
-import os
-print("PORT environment variable is:", os.environ.get("PORT"))
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
